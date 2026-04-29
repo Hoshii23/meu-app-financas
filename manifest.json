@@ -1,13 +1,13 @@
 {
-  "name": "Minhas Finanças",
+  "name": "Minhas Finanças App",
   "short_name": "Finanças",
-  "start_url": "finance_app_mobile.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0f1117",
   "theme_color": "#6c63ff",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
