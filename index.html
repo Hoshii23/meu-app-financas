@@ -1,0 +1,632 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6c63ff">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minhas Finanças</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #222537;
+    --card: #1e2133;
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --danger: #ff5c5c;
+    --warn: #ffb84d;
+    --text: #f0f0f5;
+    --muted: #8888aa;
+    --border: rgba(255,255,255,0.07);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 420px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
+  .screen { display: none; padding: 0 0 24px; animation: fadeIn 0.25s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1d27, #2a2060);
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .greeting { font-size: 13px; color: var(--muted); }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .balance-label { font-size: 12px; color: var(--muted); margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .balance-value { font-size: 32px; font-weight: 700; color: var(--text); }
+  .balance-row { display: flex; gap: 16px; margin-top: 16px; }
+  .bal-box { flex: 1; background: rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .bal-box-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .bal-box-val { font-size: 16px; font-weight: 600; }
+  .income { color: var(--accent2); }
+  .expense { color: var(--danger); }
+
+  /* Quick actions */
+  .section { padding: 20px 20px 0; }
+  .section-title { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  .quick-actions { display: flex; gap: 10px; }
+  .qa-btn {
+    flex: 1; background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 8px; text-align: center;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .qa-btn:hover { background: var(--bg3); }
+  .qa-icon { font-size: 20px; margin-bottom: 4px; }
+  .qa-label { font-size: 11px; color: var(--muted); }
+
+  /* Budget bars */
+  .budget-item { margin-bottom: 14px; }
+  .budget-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .budget-name { font-size: 14px; }
+  .budget-vals { font-size: 12px; color: var(--muted); }
+  .budget-bar-bg { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+  .budget-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+
+  /* Transactions */
+  .tx-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border-radius: var(--radius-sm);
+    padding: 12px 14px; margin-bottom: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .tx-item:hover { background: var(--bg3); }
+  .tx-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tx-info { flex: 1; }
+  .tx-name { font-size: 14px; font-weight: 500; }
+  .tx-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tx-val { font-size: 15px; font-weight: 600; }
+  .tx-val.pos { color: var(--accent2); }
+  .tx-val.neg { color: var(--danger); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 100;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px; width: 100%; max-width: 420px;
+    border-top: 1px solid var(--border);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 99px; margin: 0 auto 20px; }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 11px 14px; color: var(--text);
+    font-size: 15px; outline: none; transition: border 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .type-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+  .type-btn {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm);
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .type-btn.active-income { background: rgba(0,212,170,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .type-btn.active-expense { background: rgba(255,92,92,0.15); border-color: var(--danger); color: var(--danger); }
+  .btn-primary {
+    width: 100%; background: var(--accent); color: #fff;
+    border: none; border-radius: var(--radius-sm); padding: 14px;
+    font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px;
+    transition: opacity 0.15s;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-cancel {
+    width: 100%; background: transparent; color: var(--muted);
+    border: none; padding: 10px; font-size: 14px; cursor: pointer; margin-top: 6px;
+  }
+
+  /* Investments */
+  .invest-card {
+    background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 16px; margin-bottom: 12px;
+  }
+  .invest-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .invest-name { font-size: 15px; font-weight: 600; }
+  .invest-type { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .invest-badge { padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .badge-up { background: rgba(0,212,170,0.15); color: var(--accent2); }
+  .badge-down { background: rgba(255,92,92,0.15); color: var(--danger); }
+  .invest-vals { display: flex; gap: 20px; }
+  .invest-val-item { }
+  .invest-val-label { font-size: 11px; color: var(--muted); }
+  .invest-val-num { font-size: 16px; font-weight: 600; margin-top: 2px; }
+
+  /* Debts */
+  .debt-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
+  .debt-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .debt-name { font-size: 15px; font-weight: 600; }
+  .debt-parcelas { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .debt-total { font-size: 17px; font-weight: 700; color: var(--danger); }
+  .debt-prog-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .debt-bar-bg { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+  .debt-bar-fill { height: 100%; border-radius: 99px; }
+  .debt-parcela-val { font-size: 13px; color: var(--muted); }
+  .debt-parcela-val span { color: var(--warn); font-weight: 600; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 420px;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    display: flex; padding: 10px 0 16px; z-index: 50;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; cursor: pointer; transition: color 0.15s; color: var(--muted);
+    padding: 4px 0;
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-icon { font-size: 22px; }
+  .nav-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Summary chips */
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg3); border-radius: 99px; padding: 5px 12px; font-size: 12px; margin-right: 8px; margin-bottom: 8px; color: var(--muted); border: 1px solid var(--border); }
+  .chip-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .fab {
+    position: fixed; bottom: 80px; right: 20px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); border: none; color: #fff;
+    font-size: 26px; cursor: pointer; z-index: 60;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.5);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .fab:hover { transform: scale(1.08); }
+
+  select.form-input { appearance: none; }
+</style>
+</head>
+<body>
+
+<!-- TELA: INÍCIO -->
+<div class="screen active" id="screen-home">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="greeting">Bom dia 👋</div>
+        <div style="font-size: 17px; font-weight: 600; margin-top: 2px;">Suas Finanças</div>
+      </div>
+      <div class="avatar">EU</div>
+    </div>
+    <div class="balance-label">Saldo Total</div>
+    <div class="balance-value" id="saldo-total">R$ 0,00</div>
+    <div class="balance-row">
+      <div class="bal-box">
+        <div class="bal-box-label">Receitas</div>
+        <div class="bal-box-val income" id="total-receitas">R$ 0,00</div>
+      </div>
+      <div class="bal-box">
+        <div class="bal-box-label">Despesas</div>
+        <div class="bal-box-val expense" id="total-despesas">R$ 0,00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Ações rápidas</div>
+    <div class="quick-actions">
+      <div class="qa-btn" onclick="openModal('receita')">
+        <div class="qa-icon">💰</div>
+        <div class="qa-label">Receita</div>
+      </div>
+      <div class="qa-btn" onclick="openModal('despesa')">
+        <div class="qa-icon">💸</div>
+        <div class="qa-label">Despesa</div>
+      </div>
+      <div class="qa-btn" onclick="navTo('investimentos')">
+        <div class="qa-icon">📈</div>
+        <div class="qa-label">Investir</div>
+      </div>
+      <div class="qa-btn" onclick="navTo('dividas')">
+        <div class="qa-icon">🏦</div>
+        <div class="qa-label">Dívidas</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Orçamento do mês</div>
+    <div id="budget-list"></div>
+  </div>
+
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Últimas transações</div>
+    <div id="tx-list-home"></div>
+  </div>
+</div>
+
+<!-- TELA: TRANSAÇÕES -->
+<div class="screen" id="screen-transacoes">
+  <div class="header">
+    <div class="header-top">
+      <div style="font-size: 18px; font-weight: 600;">Transações</div>
+    </div>
+    <div style="margin-top: 12px; display: flex; flex-wrap: wrap;" id="filter-chips">
+      <div class="chip" onclick="filterTx('todas')" id="chip-todas" style="border-color: var(--accent); color: var(--text);">
+        <div class="chip-dot" style="background: var(--accent)"></div> Todas
+      </div>
+      <div class="chip" onclick="filterTx('receita')" id="chip-receita">
+        <div class="chip-dot" style="background: var(--accent2)"></div> Receitas
+      </div>
+      <div class="chip" onclick="filterTx('despesa')" id="chip-despesa">
+        <div class="chip-dot" style="background: var(--danger)"></div> Despesas
+      </div>
+    </div>
+  </div>
+  <div class="section" style="margin-top: 20px;">
+    <div id="tx-list-all"></div>
+    <div id="tx-empty" style="text-align:center;color:var(--muted);padding:40px 0;display:none;">Nenhuma transação ainda.</div>
+  </div>
+</div>
+
+<!-- TELA: INVESTIMENTOS -->
+<div class="screen" id="screen-investimentos">
+  <div class="header">
+    <div style="font-size: 18px; font-weight: 600;">Investimentos</div>
+    <div style="font-size: 13px; color: var(--muted); margin-top: 4px;">Carteira consolidada</div>
+    <div style="margin-top: 12px;">
+      <div style="font-size: 12px; color: var(--muted);">Total aplicado</div>
+      <div style="font-size: 26px; font-weight: 700; margin-top: 2px;" id="invest-total">R$ 0,00</div>
+    </div>
+  </div>
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Seus ativos</div>
+    <div id="invest-list"></div>
+    <button class="btn-primary" style="margin-top: 8px;" onclick="openInvestModal()">+ Adicionar investimento</button>
+  </div>
+</div>
+
+<!-- TELA: DÍVIDAS -->
+<div class="screen" id="screen-dividas">
+  <div class="header">
+    <div style="font-size: 18px; font-weight: 600;">Dívidas & Parcelamentos</div>
+    <div style="font-size: 13px; color: var(--muted); margin-top: 4px;">Controle seus compromissos</div>
+    <div style="margin-top: 12px;">
+      <div style="font-size: 12px; color: var(--muted);">Total em aberto</div>
+      <div style="font-size: 26px; font-weight: 700; color: var(--danger); margin-top: 2px;" id="debt-total">R$ 0,00</div>
+    </div>
+  </div>
+  <div class="section" style="margin-top: 20px;">
+    <div class="section-title">Dívidas ativas</div>
+    <div id="debt-list"></div>
+    <button class="btn-primary" style="margin-top: 8px;" onclick="openDebtModal()">+ Adicionar dívida</button>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openModal('despesa')">+</button>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="navTo('home')" id="nav-home">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">Início</div>
+  </div>
+  <div class="nav-item" onclick="navTo('transacoes')" id="nav-transacoes">
+    <div class="nav-icon">↕️</div>
+    <div class="nav-label">Transações</div>
+  </div>
+  <div class="nav-item" onclick="navTo('investimentos')" id="nav-investimentos">
+    <div class="nav-icon">📈</div>
+    <div class="nav-label">Invest.</div>
+  </div>
+  <div class="nav-item" onclick="navTo('dividas')" id="nav-dividas">
+    <div class="nav-icon">🏦</div>
+    <div class="nav-label">Dívidas</div>
+  </div>
+</nav>
+
+<!-- MODAL: TRANSAÇÃO -->
+<div class="modal-overlay" id="modal-tx">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-tx-title">Nova transação</div>
+    <div class="type-toggle">
+      <button class="type-btn" id="btn-receita" onclick="setType('receita')">💰 Receita</button>
+      <button class="type-btn" id="btn-despesa" onclick="setType('despesa')">💸 Despesa</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" class="form-input" id="tx-desc" placeholder="Ex: Salário, Aluguel...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor (R$)</label>
+      <input type="number" class="form-input" id="tx-valor" placeholder="0,00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoria</label>
+      <select class="form-input" id="tx-categoria">
+        <option value="Alimentação">🍔 Alimentação</option>
+        <option value="Transporte">🚗 Transporte</option>
+        <option value="Moradia">🏠 Moradia</option>
+        <option value="Saúde">💊 Saúde</option>
+        <option value="Lazer">🎮 Lazer</option>
+        <option value="Salário">💼 Salário</option>
+        <option value="Freelance">💻 Freelance</option>
+        <option value="Outros">📦 Outros</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="salvarTransacao()">Salvar</button>
+    <button class="btn-cancel" onclick="closeModal('modal-tx')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: INVESTIMENTO -->
+<div class="modal-overlay" id="modal-invest">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Novo Investimento</div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input type="text" class="form-input" id="inv-nome" placeholder="Ex: Tesouro Selic, BOVA11...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-input" id="inv-tipo">
+        <option>Renda Fixa</option>
+        <option>Ações</option>
+        <option>FII</option>
+        <option>Criptomoedas</option>
+        <option>Poupança</option>
+        <option>Outros</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor aplicado (R$)</label>
+      <input type="number" class="form-input" id="inv-valor" placeholder="0,00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rentabilidade (%)</label>
+      <input type="number" class="form-input" id="inv-rent" placeholder="Ex: 12.5" step="0.1">
+    </div>
+    <button class="btn-primary" onclick="salvarInvestimento()">Salvar</button>
+    <button class="btn-cancel" onclick="closeModal('modal-invest')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL: DÍVIDA -->
+<div class="modal-overlay" id="modal-debt">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nova Dívida / Parcelamento</div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input type="text" class="form-input" id="debt-nome" placeholder="Ex: Cartão, Financiamento...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor total (R$)</label>
+      <input type="number" class="form-input" id="debt-total-val" placeholder="0,00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Parcelas pagas / Total</label>
+      <div style="display:flex; gap:8px;">
+        <input type="number" class="form-input" id="debt-pagas" placeholder="Ex: 3" style="width:48%">
+        <input type="number" class="form-input" id="debt-parcelas" placeholder="Ex: 12" style="width:48%">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="salvarDivida()">Salvar</button>
+    <button class="btn-cancel" onclick="closeModal('modal-debt')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const state = {
+  transacoes: [],
+  investimentos: [
+    { nome: 'Tesouro Selic', tipo: 'Renda Fixa', valor: 5000, rent: 11.2 },
+    { nome: 'BOVA11', tipo: 'Ações', valor: 2300, rent: -3.4 }
+  ],
+  dividas: [
+    { nome: 'Cartão Nubank', total: 3200, pagas: 2, parcelas: 12 },
+    { nome: 'Financiamento Moto', total: 18000, pagas: 10, parcelas: 36 }
+  ],
+  txFilter: 'todas',
+  txType: 'despesa'
+};
+
+const fmt = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const catIcons = { Alimentação:'🍔', Transporte:'🚗', Moradia:'🏠', Saúde:'💊', Lazer:'🎮', Salário:'💼', Freelance:'💻', Outros:'📦' };
+const catColors = { Alimentação:'#ff9f43', Transporte:'#6c63ff', Moradia:'#26de81', Saúde:'#ff5c5c', Lazer:'#a29bfe', Salário:'#00d4aa', Freelance:'#fd9644', Outros:'#636e72' };
+const budgetLimits = { Alimentação:1200, Transporte:500, Moradia:2000, Saúde:400, Lazer:600 };
+
+function navTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  document.getElementById('nav-' + screen).classList.add('active');
+  const fab = document.getElementById('fab');
+  fab.style.display = (screen === 'home' || screen === 'transacoes') ? 'flex' : 'none';
+  if (screen === 'home') renderHome();
+  if (screen === 'transacoes') renderTx();
+  if (screen === 'investimentos') renderInvest();
+  if (screen === 'dividas') renderDebts();
+}
+
+function openModal(type) {
+  setType(type);
+  document.getElementById('modal-tx').classList.add('open');
+  document.getElementById('tx-desc').value = '';
+  document.getElementById('tx-valor').value = '';
+}
+function openInvestModal() { document.getElementById('modal-invest').classList.add('open'); }
+function openDebtModal() { document.getElementById('modal-debt').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function setType(type) {
+  state.txType = type;
+  document.getElementById('btn-receita').className = 'type-btn' + (type === 'receita' ? ' active-income' : '');
+  document.getElementById('btn-despesa').className = 'type-btn' + (type === 'despesa' ? ' active-expense' : '');
+}
+
+function salvarTransacao() {
+  const desc = document.getElementById('tx-desc').value.trim();
+  const valor = parseFloat(document.getElementById('tx-valor').value);
+  const cat = document.getElementById('tx-categoria').value;
+  if (!desc || isNaN(valor) || valor <= 0) return alert('Preencha todos os campos.');
+  const now = new Date();
+  state.transacoes.unshift({ desc, valor, cat, tipo: state.txType, data: now.toLocaleDateString('pt-BR') });
+  closeModal('modal-tx');
+  renderHome(); renderTx();
+}
+
+function salvarInvestimento() {
+  const nome = document.getElementById('inv-nome').value.trim();
+  const tipo = document.getElementById('inv-tipo').value;
+  const valor = parseFloat(document.getElementById('inv-valor').value);
+  const rent = parseFloat(document.getElementById('inv-rent').value);
+  if (!nome || isNaN(valor) || valor <= 0) return alert('Preencha todos os campos.');
+  state.investimentos.push({ nome, tipo, valor, rent: isNaN(rent) ? 0 : rent });
+  closeModal('modal-invest');
+  renderInvest();
+}
+
+function salvarDivida() {
+  const nome = document.getElementById('debt-nome').value.trim();
+  const total = parseFloat(document.getElementById('debt-total-val').value);
+  const pagas = parseInt(document.getElementById('debt-pagas').value) || 0;
+  const parcelas = parseInt(document.getElementById('debt-parcelas').value) || 1;
+  if (!nome || isNaN(total) || total <= 0) return alert('Preencha todos os campos.');
+  state.dividas.push({ nome, total, pagas, parcelas });
+  closeModal('modal-debt');
+  renderDebts();
+}
+
+function filterTx(f) {
+  state.txFilter = f;
+  ['todas','receita','despesa'].forEach(x => {
+    const el = document.getElementById('chip-' + x);
+    el.style.borderColor = x === f ? 'var(--accent)' : 'var(--border)';
+    el.style.color = x === f ? 'var(--text)' : 'var(--muted)';
+  });
+  renderTx();
+}
+
+function renderTxItem(tx) {
+  return `<div class="tx-item">
+    <div class="tx-icon" style="background:${catColors[tx.cat] || '#636e72'}22;">${catIcons[tx.cat] || '📦'}</div>
+    <div class="tx-info">
+      <div class="tx-name">${tx.desc}</div>
+      <div class="tx-date">${tx.cat} · ${tx.data}</div>
+    </div>
+    <div class="tx-val ${tx.tipo === 'receita' ? 'pos' : 'neg'}">${tx.tipo === 'receita' ? '+' : '-'}${fmt(tx.valor)}</div>
+  </div>`;
+}
+
+function renderHome() {
+  const receitas = state.transacoes.filter(t => t.tipo === 'receita').reduce((s, t) => s + t.valor, 0);
+  const despesas = state.transacoes.filter(t => t.tipo === 'despesa').reduce((s, t) => s + t.valor, 0);
+  document.getElementById('total-receitas').textContent = fmt(receitas);
+  document.getElementById('total-despesas').textContent = fmt(despesas);
+  document.getElementById('saldo-total').textContent = fmt(receitas - despesas);
+
+  const bl = document.getElementById('budget-list');
+  const cats = Object.keys(budgetLimits);
+  bl.innerHTML = cats.map(cat => {
+    const gasto = state.transacoes.filter(t => t.tipo === 'despesa' && t.cat === cat).reduce((s, t) => s + t.valor, 0);
+    const limit = budgetLimits[cat];
+    const pct = Math.min(100, (gasto / limit) * 100);
+    const color = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--accent2)';
+    return `<div class="budget-item">
+      <div class="budget-row">
+        <div class="budget-name">${catIcons[cat]} ${cat}</div>
+        <div class="budget-vals">${fmt(gasto)} / ${fmt(limit)}</div>
+      </div>
+      <div class="budget-bar-bg"><div class="budget-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+    </div>`;
+  }).join('');
+
+  const txList = document.getElementById('tx-list-home');
+  const last5 = state.transacoes.slice(0, 5);
+  txList.innerHTML = last5.length ? last5.map(renderTxItem).join('') : '<div style="text-align:center;color:var(--muted);padding:30px 0;">Nenhuma transação ainda.<br>Toque em + para começar.</div>';
+}
+
+function renderTx() {
+  const list = state.transacoes.filter(t => state.txFilter === 'todas' || t.tipo === state.txFilter);
+  const el = document.getElementById('tx-list-all');
+  const empty = document.getElementById('tx-empty');
+  if (!list.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  el.innerHTML = list.map(renderTxItem).join('');
+}
+
+function renderInvest() {
+  const total = state.investimentos.reduce((s, i) => s + i.valor, 0);
+  document.getElementById('invest-total').textContent = fmt(total);
+  const el = document.getElementById('invest-list');
+  el.innerHTML = state.investimentos.map(inv => {
+    const up = inv.rent >= 0;
+    return `<div class="invest-card">
+      <div class="invest-header">
+        <div><div class="invest-name">${inv.nome}</div><div class="invest-type">${inv.tipo}</div></div>
+        <div class="invest-badge ${up ? 'badge-up' : 'badge-down'}">${up ? '+' : ''}${inv.rent.toFixed(1)}%</div>
+      </div>
+      <div class="invest-vals">
+        <div class="invest-val-item">
+          <div class="invest-val-label">Aplicado</div>
+          <div class="invest-val-num">${fmt(inv.valor)}</div>
+        </div>
+        <div class="invest-val-item">
+          <div class="invest-val-label">Rendimento</div>
+          <div class="invest-val-num" style="color:${up ? 'var(--accent2)' : 'var(--danger)'};">${fmt(inv.valor * inv.rent / 100)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDebts() {
+  const total = state.dividas.reduce((s, d) => {
+    const restantes = d.parcelas - d.pagas;
+    return s + (d.total / d.parcelas) * restantes;
+  }, 0);
+  document.getElementById('debt-total').textContent = fmt(total);
+  const el = document.getElementById('debt-list');
+  el.innerHTML = state.dividas.map(d => {
+    const pct = Math.round((d.pagas / d.parcelas) * 100);
+    const parcVal = d.total / d.parcelas;
+    return `<div class="debt-card">
+      <div class="debt-header">
+        <div><div class="debt-name">${d.nome}</div><div class="debt-parcelas">${d.pagas} de ${d.parcelas} parcelas pagas</div></div>
+        <div class="debt-total">${fmt(d.total)}</div>
+      </div>
+      <div class="debt-prog-label"><span>${pct}% pago</span><span>${d.parcelas - d.pagas} restantes</span></div>
+      <div class="debt-bar-bg"><div class="debt-bar-fill" style="width:${pct}%;background:var(--accent);"></div></div>
+      <div class="debt-parcela-val">Próxima parcela: <span>${fmt(parcVal)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+renderHome();
+renderInvest();
+renderDebts();
+</script>
+</body>
+</html>
