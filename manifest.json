@@ -1,5 +1,5 @@
 {
-  "name": "Minhas Finanças App",
+  "name": "Minhas Finanças Pro",
   "short_name": "Finanças",
   "start_url": "index.html",
   "display": "standalone",
@@ -7,8 +7,8 @@
   "theme_color": "#6c63ff",
   "icons": [
     {
-      "src": "icon.png",
-      "sizes": "192x192",
+      "src": "https://cdn-icons-png.flaticon.com/512/2489/2489756.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
